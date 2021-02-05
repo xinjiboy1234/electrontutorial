@@ -1,4 +1,4 @@
-const net = window.require('net')
+var net = require('net')
 // import net from 'net'
 
 let socketClients = [];
@@ -10,14 +10,14 @@ let socketClients = [];
  */
 function sendData(socketClient, data) {
 	if (socketClient == null || socketClient == undefined) {
-		console.error('连接对象为空');
+		console.error('Connection Client is Empty');
 		return;
 	}
 	if (data == null || data == undefined) {
-		console.error('数据为空');
+		console.error('Data is null');
 		return;
 	}
-	console.log('发送' + data.toUpperCase() + '至' + socketClient.remoteAddress + ':' + socketClient.remotePort);
+	console.log('Send ' + data.toUpperCase() + ' to ' + socketClient.remoteAddress + ':' + socketClient.remotePort);
 	socketClient.write(Buffer.from(data.toUpperCase(), "hex"))
 }
 
@@ -44,9 +44,8 @@ function getLightOnData(lampProperty) {
 		data += (Number.parseInt(51, 16) + c).toString(16);
 		for (let i = 0; i < 50; i++) {
 			let lamp = lampProperty.lamps[i];
-			const qty = Number.parseInt(lamp.qty);
-			const id = Number.parseInt(lamp.id);
-			if (lamp && (i + 1) === id) {
+			if (lamp && (i + 1) === Number.parseInt(lamp.id)) {
+				const qty = Number.parseInt(lamp.qty);
 				if (lamp.qty > 255) {
 					data += (qty % 256).toString(16).padStart(2, '0'); // Number.parseInt(lamp.qty.toString(16)) % 256;
 					data += (qty / 256).toString(16).padStart(2, '0'); //Number.parseInt(lamp.qty.toString(16)) / 256;
@@ -91,9 +90,8 @@ function getLightOffData(lampProperty) {
 		data += (Number.parseInt(51, 16) + c).toString(16);
 		for (let i = 0; i < 50; i++) {
 			let lamp = lampProperty.lamps[i];
-			const qty = Number.parseInt(lamp.qty);
-			const id = Number.parseInt(lamp.id);
-			if (lamp && (i + 1) === id) {
+			if (lamp && (i + 1) === Number.parseInt(lamp.id)) {
+				const qty = Number.parseInt(lamp.qty);
 				if (qty > 255) {
 					data += (qty % 256).toString(16).padStart(2, '0');
 					data += (qty / 256).toString(16).padStart(2, '0');
@@ -143,7 +141,7 @@ function getColorCode(colorStr) {
  * @param {*} receiveDataCallBack  接收数据回调函数
  */
 function connectToServer(ip, port, receiveDataCallBack) {
-	console.log(ip + ':' + port + '尝试连接')
+	console.log(ip + ':' + port + 'Try to Connect')
 	const prt = Number.parseInt(port);
 	let sc = new net.Socket();
 	sc.connect(prt, ip, function () {
@@ -157,17 +155,20 @@ function connectToServer(ip, port, receiveDataCallBack) {
 			removeClient(scTemp);
 		}
 		socketClients.push(sc);
-		console.log(ip + ':' + port + '连接成功')
-	}).on('error', function (err) {
-		console.log('连接错误, ' + err);
-		console.log('尝试重新连接');
+		console.log(ip + ':' + port + ' Success for Connect')
+	});
+	sc.on('error', function (err) {
+		console.log(' Connection Error, ' + err);
+		console.log(' Try Reconnect');
 		connectToServer(ip, port, receiveDataCallBack);
-	}).on('close', function () {
-		console.log(ip + ':' + port + '连接被关闭');
-	}).on('data', function (data) {
-		console.log('接收到服务器数据==>>' + data);
+	});
+	sc.on('close', function () {
+		console.log(ip + ':' + port + ' Connection Closed');
+	});
+	sc.on('data', function (data) {
+		console.log(`data==>>${data}`);
 		// 执行回调
-		receiveDataCallBack({ 'ip': ip, 'port': port, 'data': data });
+		//receiveDataCallBack({ 'ip': ip, 'port': port, 'data': data });
 	});
 }
 
@@ -177,13 +178,14 @@ function connectToServer(ip, port, receiveDataCallBack) {
  * @param {*} port 
  */
 function disConnect(ip, port) {
-	let sc = getSocketClientByIp(ip, port);
+	let prt = Number.parseInt(port);
+	let sc = getSocketClientByIp(ip, prt);
 	if (sc != null && sc != undefined) {
 		removeClient(sc);
 		sc.destroy();
-		console.log(sc + '连接被销毁');
+		console.log(sc + ' Connection Destroied');
 	}
-	console.log('剩余连接：，' + socketClients);
+	console.log('Remain Connection：，' + socketClients);
 }
 
 /**
@@ -214,49 +216,90 @@ function getSocketClientByIp(ip, port) {
 	let sc;
 	socketClients.forEach(x => {
 		if (x.remoteAddress === ip && x.remotePort === Number.parseInt(port)) {
-			console.log('远程主机信息==>' + x.remoteAddress + ':' + x.remotePort);
+			console.log('Remote Host==>' + x.remoteAddress + ':' + x.remotePort);
 			sc = x;
 		}
 	});
 	return sc;
 }
-
-export default {
-	/**
-	 * 连接到服务器
-	 * @param {*} ip 
-	 * @param {*} port 
-	 */
-	connect(ip, port, receiveDataCallBack) {
-		connectToServer(ip, port, receiveDataCallBack);
-	},
-	disConnect(ip, port) {
-		disConnect(ip, port);
-	},
-	/**
-	 * 批量亮灯
-	 * @param {*} lampProperty 
-	 */
-	batchLightOn(lampProperty) {
-		const data = getLightOnData(lampProperty);
-		data.map(d => {
-			const sc = getSocketClientByIp(lampProperty.ip, lampProperty.port);
-			if (sc != null && sc != undefined) {
-				sendData(sc, d);
-			}
-		});
-	},
-	/**
-	 * 批量灭灯
-	 * @param {*} lampProperty 
-	 */
-	batchLightOff(lampProperty) {
-		const data = getLightOffData(lampProperty);
-		data.map(d => {
-			const sc = getSocketClientByIp(lampProperty.ip, lampProperty.port);
-			if (sc != null && sc != undefined) {
-				sendData(sc, d);
-			}
-		});
-	}
+/**
+ * 连接到服务器
+ * @param {*} ip 
+ * @param {*} port 
+ */
+// Received Data from Server{"sender":{"_events":{},"_eventsCount":3},"senderId":0,"ports":[]}
+module.exports.connect = function (ip, port, receiveDataCallBack) {
+	connectToServer(ip, port, receiveDataCallBack);
 }
+
+module.exports.disConnect = function (ip, port) {
+	disConnect(ip, port);
+}
+/**
+ * 批量亮灯
+ * @param {*} lampProperty 
+ */
+module.exports.batchLightOn = function (lampProperty) {
+	console.log(lampProperty);
+	const data = getLightOnData(lampProperty);
+	console.log(lampProperty);
+	data.map(d => {
+		const sc = getSocketClientByIp(lampProperty.ip, lampProperty.port);
+		if (sc != null && sc != undefined) {
+			sendData(sc, d);
+		}
+	});
+}
+/**
+ * 批量灭灯
+ * @param {*} lampProperty 
+ */
+module.exports.batchLightOff = function (lampProperty) {
+	const data = getLightOffData(lampProperty);
+	data.map(d => {
+		const sc = getSocketClientByIp(lampProperty.ip, lampProperty.port);
+		if (sc != null && sc != undefined) {
+			sendData(sc, d);
+		}
+	});
+}
+
+// export default {
+// 	/**
+// 	 * 连接到服务器
+// 	 * @param {*} ip 
+// 	 * @param {*} port 
+// 	 */
+// 	connect(ip, port, receiveDataCallBack) {
+// 		connectToServer(ip, port, receiveDataCallBack);
+// 	},
+// 	disConnect(ip, port) {
+// 		disConnect(ip, port);
+// 	},
+// 	/**
+// 	 * 批量亮灯
+// 	 * @param {*} lampProperty 
+// 	 */
+// 	batchLightOn(lampProperty) {
+// 		const data = getLightOnData(lampProperty);
+// 		data.map(d => {
+// 			const sc = getSocketClientByIp(lampProperty.ip, lampProperty.port);
+// 			if (sc != null && sc != undefined) {
+// 				sendData(sc, d);
+// 			}
+// 		});
+// 	},
+// 	/**
+// 	 * 批量灭灯
+// 	 * @param {*} lampProperty 
+// 	 */
+// 	batchLightOff(lampProperty) {
+// 		const data = getLightOffData(lampProperty);
+// 		data.map(d => {
+// 			const sc = getSocketClientByIp(lampProperty.ip, lampProperty.port);
+// 			if (sc != null && sc != undefined) {
+// 				sendData(sc, d);
+// 			}
+// 		});
+// 	}
+// }

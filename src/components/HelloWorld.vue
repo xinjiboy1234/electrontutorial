@@ -15,9 +15,11 @@
 							<h3>Host Settings</h3>
 							<div>
 							<el-button type="primary" @click="hostDialogVisible=true">Add</el-button>
-							<el-button type="danger" :disabled="hosts.length<=0">Delete</el-button>
+							<el-button type="danger" :disabled="hosts.length<=0 && selectedHosts.length>0" @click="hostSettingsDelete">Delete</el-button>
 							</div>
-							<el-table :data="hosts" class="host-table">
+							<el-table :data="hosts" class="host-table" @selection-change="hostSelectionChanged">
+                                <el-table-column type="selection" width="55">
+								</el-table-column>
                                 <el-table-column prop="ip" label="IP">
                                 </el-table-column>
                                 <el-table-column prop="port" label="Port">
@@ -30,9 +32,9 @@
 							</div>
 							<div>
 								<el-button type="primary" @click="lightSettingDialogVisible = true">Add</el-button>
-								<el-button type="danger" :disabled="lights.length<=0" @click="lightSettingsDelete">Delete</el-button>
+								<el-button type="danger" :disabled="lights.length<=0&&selectedLights.length>0" @click="lightSettingsDelete">Delete</el-button>
 							</div>
-							<el-table :data="lights" class="light-table" @selection-change="handleSelectionChange">
+							<el-table :data="lights" class="light-table" @selection-change="lightsSelectionChanged">
 								<el-table-column type="selection" width="55">
 								</el-table-column>
 								<el-table-column prop="index" label="Index">
@@ -93,13 +95,14 @@
 			</el-form>
 			<div slot="footer" class="dialog-footer">
 				<el-button @click="lightSettingCancel">Close</el-button>
-				<el-button type="primary" @click="lightSettingConfirm">Save</el-button>
+				<el-button type="primary" @click="lightSettingsSave">Save</el-button>
 			</div>
 		</el-dialog>
 	</div>
 </template>
 <script>
-import socketClient from "@/utils/socket";
+// import socketClient from "@/utils/socket";
+const ipcRenderer = window.require("electron").ipcRenderer;
 
 export default {
     name: "HelloWorld",
@@ -129,7 +132,30 @@ export default {
                 color: "",
             },
             selectedLights: [],
+            selectedHosts: [],
         };
+    },
+
+    mounted() {
+        /**
+         * 服务端返回数据回调注册
+         */
+        // ipcRenderer.on("receiveCallback", (data) => {
+        //     const date = new Date();
+        //     this.message +=
+        //         date.toLocaleString() +
+        //         "\nReceived Data from Server" +
+        //         JSON.stringify(data) +
+        //         "\n";
+        // });
+        ipcRenderer.on("receiveCallback", (data) => {
+            const date = new Date();
+            this.message +=
+                date.toLocaleString() +
+                "\nReceived Data from Server" +
+                JSON.stringify(data) +
+                "\n";
+        });
     },
 
     methods: {
@@ -143,32 +169,115 @@ export default {
          * 添加主机信息
          */
         hostSettingConfirm() {
+            const re = /^([0-9]|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.([0-9]|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.([0-9]|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.([0-9]|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])$/;
+
+            if (!re.test(this.host.ip)) {
+                this.$message({
+                    message: "Invalid IP Address",
+                    type: "warning",
+                });
+                return;
+            }
+
+            const rePort = /[^\d]/g;
+            if (rePort.test(this.host.port)) {
+                this.$message({
+                    message: "Invalid PortNumber",
+                    type: "warning",
+                });
+                return;
+            }
+
+            const h = this.hosts.find(
+                (x) => x.ip === this.host.ip && x.port === this.host.port
+            );
+            if (h === null || h === undefined) {
+                this.hosts.push({
+                    ip: this.host.ip,
+                    port: this.host.port,
+                    isConnected: false,
+                });
+            } else {
+                this.$message({
+                    message: "The host already exists",
+                    type: "warning",
+                });
+                return;
+            }
             this.hostDialogVisible = false;
-            this.hosts.push({
-                ip: this.host.ip,
-                port: this.host.port,
-            });
             this.host = {
                 ip: "",
                 port: "",
             };
         },
+
+        /**
+         * 删除选中的主机
+         */
+        hostSettingsDelete() {
+            if (this.selectedHosts.length === 0) {
+                this.$message({
+                    message: "Please select one record",
+                    type: "warning",
+                });
+                return;
+            }
+            this.selectedHosts.forEach((x) => {
+                for (let i = 0; i < this.hosts.length; i++) {
+                    if (x.index === this.hosts[i].index) {
+                        // 断开连接
+                        ipcRenderer.send(
+                            "disConnect",
+                            this.hosts[i].ip,
+                            this.hosts[i].port
+                        );
+                        // socketClient.disConnect(
+                        //     this.hosts[i].ip,
+                        //     this.hosts[i].port
+                        // );
+                        this.hosts.splice(i, 1);
+                    }
+                }
+            });
+        },
         /**
          * 表格多选框事件
          */
-        handleSelectionChange(val) {
+        lightsSelectionChanged(val) {
             this.selectedLights = val;
+        },
+
+        hostSelectionChanged(val) {
+            this.selectedHosts = val;
         },
         /**
          * 添加灯数据
          */
-        lightSettingConfirm() {
+        lightSettingsSave() {
+            const regxlight = /[^\d]/g;
+            if (regxlight.test(this.light.index)) {
+                this.$message({
+                    message: "Invalid PortNumber",
+                    type: "warning",
+                });
+                return;
+            }
+
+            const l = this.lights.find((x) => x.index === this.light.index);
+            if (l === null || l === undefined) {
+                this.lights.push({
+                    index: this.light.index,
+                    displayNumber: this.light.displayNumber,
+                    color: this.light.color,
+                });
+            } else {
+                this.$message({
+                    message: "The light already exists",
+                    type: "warning",
+                });
+                return;
+            }
             this.lightSettingDialogVisible = false;
-            this.lights.push({
-                index: this.light.index,
-                displayNumber: this.light.displayNumber,
-                color: this.light.color,
-            });
             this.light = {
                 index: "",
                 displayNumber: "",
@@ -207,76 +316,63 @@ export default {
             /*
       6D0006000000510c000d001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100
       */
-            socketClient.connect("127.0.0.1", 4660, (data) => {
-                console.log("a ==>" + data.toString());
-                const date = new Date();
-                this.message +=
-                    date.toLocaleString() +
-                    "\n接收到服务器数据" +
-                    JSON.stringify(data) +
-                    "\n";
-            });
-
-            socketClient.connect("127.0.0.1", 4661, (data) => {
-                console.log("a ==>" + data.toString());
-                const date = new Date();
-                this.message +=
-                    date.toLocaleString() +
-                    "\n接收到服务器数据" +
-                    JSON.stringify(data) +
-                    "\n";
+            // this.hosts.map((h) => {
+            //     socketClient.connect(h.ip, h.port, (data) => {
+            //         const date = new Date();
+            //         this.message +=
+            //             date.toLocaleString() +
+            //             "\n接收到服务器数据" +
+            //             JSON.stringify(data) +
+            //             "\n";
+            //     });
+            // });
+            this.hosts.map((h) => {
+                ipcRenderer.send("connect", h.ip, h.port);
             });
         },
 
         batchLightOn() {
-            socketClient.batchLightOn({
-                ip: "127.0.0.1",
-                port: 4660,
-                color: "red",
-                lamps: [
-                    {
-                        id: 1,
-                        qty: 12,
-                    },
-                    {
-                        id: 2,
-                        qty: 13,
-                    },
-                    {
-                        id: 3,
-                        qty: 16,
-                    },
-                ],
-            });
-            socketClient.batchLightOn({
-                ip: "127.0.0.1",
-                port: 4661,
-                color: "red",
-                lamps: [
-                    {
-                        id: 1,
-                        qty: 12,
-                    },
-                    {
-                        id: 2,
-                        qty: 13,
-                    },
-                    {
-                        id: 3,
-                        qty: 16,
-                    },
-                ],
+            this.hosts.map((h) => {
+                let lampArr = [];
+                this.lights.map((l) => {
+                    const lamp = {
+                        id: l.index,
+                        qty: l.displayNumber,
+                    };
+                    lampArr.push(lamp);
+                });
+                if (lampArr.length <= 0) return;
+                ipcRenderer.send("batchLightOn", {
+                    ip: h.ip,
+                    port: h.port,
+                    color: "red",
+                    lamps: lampArr,
+                });
+                // socketClient.batchLightOn({
+                //     ip: h.ip,
+                //     port: h.port,
+                //     color: "red",
+                //     lamps: lampArr,
+                // });
             });
         },
         /**
          * 批量灭灯
          */
         batchLightOff() {
-            socketClient.batchLightOff({
-                ip: "127.0.0.1",
-                port: "4660",
-                color: "",
-                lamps: [],
+            this.hosts.map((h) => {
+                ipcRenderer.send("batchLightOff", {
+                    ip: h.ip,
+                    port: h.port,
+                    color: "",
+                    lamps: [],
+                });
+                // socketClient.batchLightOff({
+                //     ip: h.ip,
+                //     port: h.port,
+                //     color: "",
+                //     lamps: [],
+                // });
             });
         },
     },
