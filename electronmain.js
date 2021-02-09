@@ -4,16 +4,16 @@ const socketClient = require('./utils/socket');
 // import socketClient from './utils/socket';
 
 // const url = require("url");
-const path = require("path");
+// const path = require("path");
 
 let mainWindow
 
 // 热加载
-try {
-	require('electron-reloader')(module, {});
-} catch (_) {
-	console.log('热加载错误');
-}
+// try {
+// 	require('electron-reloader')(module, {});
+// } catch (_) {
+// 	console.log('热加载错误');
+// }
 
 function createWindow() {
 	mainWindow = new BrowserWindow({
@@ -26,14 +26,14 @@ function createWindow() {
 		frame: false,
 		webPreferences: {
 			nodeIntegration: true,
-			preload: __dirname + '/preload.js'
+			// preload: __dirname + '/preload.js'
 			//contextIsolation: false
 		}
 	});
 
 	// mainWindow.webContents.openDevTools({ mode: 'right' }) // 开发者工具
-	// mainWindow.loadURL(`http://localhost:8080`);
-	mainWindow.loadFile(path.join(__dirname, `./dist/index.html`));
+	mainWindow.loadURL(`http://localhost:8080`);
+	// mainWindow.loadFile(path.join(__dirname, `./dist/index.html`));
 
 	// mainWindow.loadURL(
 	//   url.format({ 
@@ -83,10 +83,11 @@ ipcMain.on('window-max', function () {
 /**
  * 连接服务器
  */
-ipcMain.on('connect', function (_, ip, port) {
-	socketClient.connect(ip, port, function (data) {
-		console.log(`data ==>> ${data.data}`);
+ipcMain.on('connect', (_, ip, port) => {
+	socketClient.connect(ip, port, (data) => {
 		mainWindow.webContents.send('receiveCallback', data);
+	}, (message) => {
+		mainWindow.webContents.send('socketMessage', message);
 	});
 });
 /**

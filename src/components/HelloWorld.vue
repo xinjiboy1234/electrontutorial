@@ -1,108 +1,190 @@
 <template>
-	<div class="hello">
-		<div>
-			<h1>Light Test</h1>
-			<el-button @click="connectToServer" type="primary" plain>Conn</el-button>
-			<el-button @click="batchLightOn" type="primary" plain>Light On</el-button>
-			<el-button @click="batchLightOff" type="primary" plain>Light Off</el-button>
-		</div>
+    <div class="hello">
+        <div>
+            <h1>Light Test</h1>
+            <el-button
+                @click="connectToServer"
+                :disabled="hosts.length <= 0"
+                type="primary"
+                plain
+                >Conn</el-button
+            >
+            <el-button
+                @click="batchLightOn"
+                :disabled="lights.length <= 0"
+                type="primary"
+                plain
+                >Light On</el-button
+            >
+            <el-button
+                @click="batchLightOff"
+                :disabled="hosts.length <= 0"
+                type="primary"
+                plain
+                >Off All Light</el-button
+            >
+        </div>
 
-		<div class="container">
-			<el-row type="flex" :gutter="10">
-				<el-col :span="8">
-					<div class="basic-container settings-container">
-						<div>
-							<h3>Host Settings</h3>
-							<div>
-							<el-button type="primary" @click="hostDialogVisible=true">Add</el-button>
-							<el-button type="danger" :disabled="hosts.length<=0 && selectedHosts.length>0" @click="hostSettingsDelete">Delete</el-button>
-							</div>
-							<el-table :data="hosts" class="host-table" @selection-change="hostSelectionChanged">
+        <div class="container">
+            <el-row type="flex" :gutter="10">
+                <el-col :span="8">
+                    <div class="basic-container settings-container">
+                        <div>
+                            <h3>Host Settings</h3>
+                            <div>
+                                <el-button
+                                    type="primary"
+                                    @click="hostDialogVisible = true"
+                                    >Add</el-button
+                                >
+                                <el-button
+                                    type="danger"
+                                    :disabled="
+                                        hosts.length <= 0 &&
+                                        selectedHosts.length <= 0
+                                    "
+                                    @click="hostSettingsDelete"
+                                    >Delete</el-button
+                                >
+                            </div>
+                            <el-table
+                                :data="hosts"
+                                class="host-table"
+                                @selection-change="hostSelectionChanged"
+                            >
                                 <el-table-column type="selection" width="55">
-								</el-table-column>
+                                </el-table-column>
                                 <el-table-column prop="ip" label="IP">
                                 </el-table-column>
                                 <el-table-column prop="port" label="Port">
                                 </el-table-column>
-							</el-table>
-						</div>
-						<div>
-							<div>
-								<h3>Light Settings</h3>
-							</div>
-							<div>
-								<el-button type="primary" @click="lightSettingDialogVisible = true">Add</el-button>
-								<el-button type="danger" :disabled="lights.length<=0&&selectedLights.length>0" @click="lightSettingsDelete">Delete</el-button>
-							</div>
-							<el-table :data="lights" class="light-table" @selection-change="lightsSelectionChanged">
-								<el-table-column type="selection" width="55">
-								</el-table-column>
-								<el-table-column prop="index" label="Index">
-								</el-table-column>
-								<el-table-column prop="displayNumber" label="DisplayNumber">
-								</el-table-column>
-								<el-table-column prop="color" label="Color">
-									<template slot-scope="scope">
-									<font :color="scope.row.color == 'WHITE'? gray: scope.row.color" fontweight="bold">
-										<strong>{{scope.row.color}}</strong>
-									</font>
-									</template>
-								</el-table-column>
-							</el-table>
-						</div>
-					</div>
-				</el-col>
-				<el-col :span="16">
-                    <div class="receivebox-container">
-                        <el-input id="receivedMessage" type="textarea" placeholder="Received Message" v-model="message" readonly="true">
+                            </el-table>
+                        </div>
+                        <div>
+                            <div>
+                                <h3>Light Settings</h3>
+                            </div>
+                            <div>
+                                <el-button
+                                    type="primary"
+                                    @click="lightSettingDialogVisible = true"
+                                    >Add</el-button
+                                >
+                                <el-button
+                                    type="danger"
+                                    :disabled="
+                                        lights.length <= 0 &&
+                                        selectedLights.length <= 0
+                                    "
+                                    @click="lightSettingsDelete"
+                                    >Delete</el-button
+                                >
+                            </div>
+                            <el-table
+                                :data="lights"
+                                class="light-table"
+                                @selection-change="lightsSelectionChanged"
+                            >
+                                <el-table-column type="selection" width="55">
+                                </el-table-column>
+                                <el-table-column prop="index" label="Index">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="displayNumber"
+                                    label="DisplayNumber"
+                                >
+                                </el-table-column>
+                                <el-table-column prop="color" label="Color">
+                                    <template slot-scope="scope">
+                                        <font
+                                            :color="
+                                                scope.row.color == 'WHITE'
+                                                    ? 'gray'
+                                                    : scope.row.color
+                                            "
+                                            fontweight="bold"
+                                        >
+                                            <strong>{{
+                                                scope.row.color
+                                            }}</strong>
+                                        </font>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                        </div>
                     </div>
-				</el-col>
-			</el-row>
-		</div>
-		<!-- 服务器配置 -->
-		<el-dialog :visible.sync="hostDialogVisible">
-			<el-form :model="host">
-				<el-form-item label="Ip" :label-width="formLabelWidth">
-					<el-input v-model="host.ip" autocomplete="off"></el-input>
-				</el-form-item>
-				<el-form-item label="Port" :label-width="formLabelWidth">
-					<el-input v-model="host.port" autocomplete="off"></el-input>
-				</el-form-item>
-			</el-form>
-			<div slot="footer" class="dialog-footer">
-				<el-button @click="hostSettingCancel">Close</el-button>
-				<el-button type="primary" @click="hostSettingConfirm">Save</el-button>
-			</div>
-		</el-dialog>
-		<!-- 灯设置 -->
-		<el-dialog :visible.sync="lightSettingDialogVisible">
-			<el-form :model="light">
-				<el-form-item label="Index" :label-width="formLabelWidth2">
-					<el-input v-model="light.index" autocomplete="off"></el-input>
-				</el-form-item>
-				<el-form-item label="Display Number" :label-width="formLabelWidth2">
-					<el-input v-model="light.displayNumber" autocomplete="off"></el-input>
-				</el-form-item>
-				<el-form-item label="Color" :label-width="formLabelWidth2">
-					<el-select v-model="light.color">
+                </el-col>
+                <el-col :span="16">
+                    <div class="receivebox-container">
+                        <el-input
+                            id="receivedMessage"
+                            type="textarea"
+                            placeholder="Received Message"
+                            v-model="message"
+                            :readonly="true"
+                        ></el-input>
+                    </div>
+                </el-col>
+            </el-row>
+        </div>
+        <!-- 服务器配置 -->
+        <el-dialog :visible.sync="hostDialogVisible">
+            <el-form :model="host">
+                <el-form-item label="Ip" :label-width="formLabelWidth">
+                    <el-input v-model="host.ip" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="Port" :label-width="formLabelWidth">
+                    <el-input v-model="host.port" autocomplete="off"></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="hostSettingCancel">Close</el-button>
+                <el-button type="primary" @click="hostSettingConfirm"
+                    >Save</el-button
+                >
+            </div>
+        </el-dialog>
+        <!-- 灯设置 -->
+        <el-dialog :visible.sync="lightSettingDialogVisible">
+            <el-form :model="light">
+                <el-form-item label="Index" :label-width="formLabelWidth2">
+                    <el-input
+                        v-model="light.index"
+                        autocomplete="off"
+                    ></el-input>
+                </el-form-item>
+                <el-form-item
+                    label="Display Number"
+                    :label-width="formLabelWidth2"
+                >
+                    <el-input
+                        v-model="light.displayNumber"
+                        autocomplete="off"
+                    ></el-input>
+                </el-form-item>
+                <el-form-item label="Color" :label-width="formLabelWidth2">
+                    <el-select v-model="light.color">
                         <el-option label="RED" value="RED"></el-option>
                         <el-option label="WHITE" value="WHITE"></el-option>
                         <el-option label="YELLOW" value="YELLOW"></el-option>
                         <el-option label="BLUE" value="BLUE"></el-option>
                         <el-option label="GREEN" value="GREEN"></el-option>
-					</el-select>
-				</el-form-item>
-			</el-form>
-			<div slot="footer" class="dialog-footer">
-				<el-button @click="lightSettingCancel">Close</el-button>
-				<el-button type="primary" @click="lightSettingsSave">Save</el-button>
-			</div>
-		</el-dialog>
-	</div>
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="lightSettingCancel">Close</el-button>
+                <el-button type="primary" @click="lightSettingsSave"
+                    >Save</el-button
+                >
+            </div>
+        </el-dialog>
+    </div>
 </template>
 <script>
 // import socketClient from "@/utils/socket";
-const ipcRenderer = window.require("electron").ipcRenderer;
+// const ipcRenderer = window.require("electron").ipcRenderer;
+const { ipcRenderer } = window.require("electron");
 
 export default {
     name: "HelloWorld",
@@ -140,21 +222,20 @@ export default {
         /**
          * 服务端返回数据回调注册
          */
-        // ipcRenderer.on("receiveCallback", (data) => {
-        //     const date = new Date();
-        //     this.message +=
-        //         date.toLocaleString() +
-        //         "\nReceived Data from Server" +
-        //         JSON.stringify(data) +
-        //         "\n";
-        // });
-        ipcRenderer.on("receiveCallback", (data) => {
+        ipcRenderer.on("receiveCallback", (_, data) => {
             const date = new Date();
-            this.message +=
-                date.toLocaleString() +
-                "\nReceived Data from Server" +
-                JSON.stringify(data) +
-                "\n";
+            this.message += `${date.toLocaleString()} \n Received Data from Server
+             ${JSON.stringify(data)}\n`;
+        });
+        /**
+         * 连接成功
+         */
+        ipcRenderer.on("socketMessage", (_, message) => {
+            const date = new Date();
+            if (message && message.type === "connectionSuccess")
+                this.message += `${date.toLocaleString()} \n Host: ${
+                    (message.data.ip, message.data.port)
+                } , success to connect\n`;
         });
     },
 
@@ -231,10 +312,6 @@ export default {
                             this.hosts[i].ip,
                             this.hosts[i].port
                         );
-                        // socketClient.disConnect(
-                        //     this.hosts[i].ip,
-                        //     this.hosts[i].port
-                        // );
                         this.hosts.splice(i, 1);
                     }
                 }
@@ -313,47 +390,41 @@ export default {
          * 连接到服务器
          */
         connectToServer() {
-            /*
-      6D0006000000510c000d001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100
-      */
-            // this.hosts.map((h) => {
-            //     socketClient.connect(h.ip, h.port, (data) => {
-            //         const date = new Date();
-            //         this.message +=
-            //             date.toLocaleString() +
-            //             "\n接收到服务器数据" +
-            //             JSON.stringify(data) +
-            //             "\n";
-            //     });
-            // });
             this.hosts.map((h) => {
                 ipcRenderer.send("connect", h.ip, h.port);
             });
         },
-
+        /**
+         * 批量亮灯
+         */
         batchLightOn() {
             this.hosts.map((h) => {
-                let lampArr = [];
+                let lamps = [];
                 this.lights.map((l) => {
                     const lamp = {
                         id: l.index,
                         qty: l.displayNumber,
                     };
-                    lampArr.push(lamp);
+                    let temp = lamps.find((x) => x.color === l.color);
+                    if (temp && temp.lampArr.length > 0) {
+                        const idx = lamps.indexOf(temp);
+                        lamps[idx].lampArr.push(lamp);
+                    } else {
+                        lamps.push({ color: l.color, lampArr: [lamp] });
+                    }
                 });
-                if (lampArr.length <= 0) return;
-                ipcRenderer.send("batchLightOn", {
-                    ip: h.ip,
-                    port: h.port,
-                    color: "red",
-                    lamps: lampArr,
-                });
-                // socketClient.batchLightOn({
-                //     ip: h.ip,
-                //     port: h.port,
-                //     color: "red",
-                //     lamps: lampArr,
-                // });
+                console.log(`lamps==>>${JSON.stringify(lamps)}`);
+                if (lamps.length <= 0) return;
+                for (let i = 0; i < lamps.length; i++) {
+                    setTimeout(() => {
+                        ipcRenderer.send("batchLightOn", {
+                            ip: h.ip,
+                            port: h.port,
+                            color: lamps[i].color,
+                            lamps: lamps[i].lampArr,
+                        });
+                    }, 100 * i);
+                }
             });
         },
         /**
@@ -367,12 +438,6 @@ export default {
                     color: "",
                     lamps: [],
                 });
-                // socketClient.batchLightOff({
-                //     ip: h.ip,
-                //     port: h.port,
-                //     color: "",
-                //     lamps: [],
-                // });
             });
         },
     },
