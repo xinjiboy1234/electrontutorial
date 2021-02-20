@@ -112,10 +112,17 @@
                         :default-active="selectedIndex"
                         class="el-menu-demo"
                         text-color="#fff"
+                        background-color="#17b3a3"
                         active-text-color="#fff"
                         mode="horizontal"
                     >
-                        <el-menu-item index="1">电子标签测试</el-menu-item>
+                        <el-menu-item index="1">
+                            <router-link to="/home">电子标签测试</router-link>
+                        </el-menu-item>
+                        <el-menu-item index="2">
+                            <router-link to="/rack/pod">货架测试</router-link>
+                        </el-menu-item>
+                        <el-menu-item index="3">分拨墙测试</el-menu-item>
                     </el-menu>
                 </div>
                 <div>
@@ -266,21 +273,27 @@ $command-hover-color: white;
 .el-header {
     padding: 0px !important;
     height: 40px !important;
+    margin: 0px;
     -webkit-app-region: drag;
     .header-container {
         display: flex;
         // flex-direction: row;
         align-items: stretch;
-        flex-grow: 1;
         justify-content: space-between;
         background-color: $--color-primary;
         .menu-container {
-            float: left;
+            width: 100%;
+            margin-left: 20px;
             .el-menu-demo {
                 background-color: $--color-primary;
                 .el-menu-item {
+                    -webkit-app-region: no-drag !important;
                     height: 40px;
                     line-height: 40px;
+                    a{
+                        display: block;
+                        width:100%;
+                    }
                 }
             }
         }
@@ -290,7 +303,6 @@ $command-hover-color: white;
 .window-command-btn-zone {
     display: flex;
     align-items: stretch;
-    justify-content: space-between;
     .window-command-btn {
         height: 40px;
         margin: 0px;

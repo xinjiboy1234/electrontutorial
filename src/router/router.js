@@ -4,7 +4,7 @@ import VueRouter from 'vue-router'
 
 const routes = [
 	{ path: '/home', component: HelloWorld },
-	{ path: '/', redirect: '/rack/pod' },
+	{ path: '/', redirect: '/home' },
 	{ path: '/rack/pod', component: PodTest },
 ]
 
