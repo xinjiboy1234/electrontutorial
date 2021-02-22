@@ -123,25 +123,30 @@ function getForegroundByLevel(level) {
     }
 }
 
-function drawText(ctx, text, x, y, color) {
-    ctx.font = 20 + 'px "Consolas"';
+function drawText(ctx, text, x, y, color, fontSize) {
+    ctx.font = fontSize + 'px "Consolas"';
     ctx.fillStyle = color;
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
     ctx.fillText(text, x, y);
 }
 
-function drawBin(ctx, x, y, w, h, foreground, background, binText) {
+function drawBinContainer(ctx, x, y, w, h, background) {
     const binPadding = 5;
     drawContainerRect(ctx, x, y, w, h, "#17b3a3");
     drawContainerRect(ctx, x + binPadding, y, w - binPadding * 2, h - binPadding * 2, background);
+}
 
-    drawText(ctx, binText, w / 2 + x, h / 2 + y, foreground);
+function drawBin(ctx, x, y, w, h, foreground, background, binText) {
+    drawBinContainer(ctx, x, y, w, h, background);
+    const fontSize = w > h ? h / 3 : w / 3;
+    drawText(ctx, binText, w / 2 + x, h / 2 + y, foreground, fontSize);
 }
 
 /**
  * 获取货架结构中的货架宽度和高度
-*/
+ * @param {*} podData 
+ */
 function getRackSize(podData) {
     let sumWidth = 0;
     let sumHeight = 0;
@@ -166,11 +171,26 @@ function getRackSize(podData) {
     }
 }
 
+/**
+ * 根据面，层，货位索引获取 storageBin 信息
+ * @param {*} binList storageBin 列表
+ * @param {*} f 面索引
+ * @param {*} l 层索引
+ * @param {*} b 货位索引
+ */
+function getStoreageBinData(binList, f, l, b) {
+    for (const item of binList) {
+        if (item.fieldIndex === f && item.levelIndex === l && item.binIndex == b) {
+            return { "id": item.id, "plcCode": item.plcCode };
+        }
+    }
+    return { "id": 0, "plcCode": "" };
+}
+
 export default {
     clearRackStructure(ctx, canv) {
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canv.width, canv.height);
-        document.getElementById("podCode").innerText = "";
     },
     drawRack(ctx, canv, podData, positionData) {
         let size = getRackSize(podData);
@@ -180,7 +200,7 @@ export default {
         const containerWidth = canv.width + 10;
         const containerHeight = canv.height + 10;
 
-        ctx.fillStyle = "darkcyan";
+        ctx.fillStyle = "#17b3a3";
         ctx.fillRect(-1 * binPadding, 0, canv.width - (binPadding * 2), containerHeight);
 
         let widthRate = containerWidth / size.width;
@@ -219,19 +239,72 @@ export default {
                 sumHeight += level.binList[0].height * heightRate;
             }
         }
+    },
+    drawRebinRack(ctx, canv, rebinData, positionData) {
+        let size = getRackSize(rebinData);
+        //货位之间最小间隔
+        const binPadding = 5;
+        // 容器宽高
+        const containerWidth = canv.width + 10;
+        const containerHeight = canv.height + 10;
+        ctx.fillStyle = "#17b3a3";
+        ctx.fillRect(-1 * binPadding, 0, canv.width - (binPadding * 2), containerHeight);
 
-        // document.getElementById("podCode").innerText = podData.rackDTO.code;
+        let widthRate = containerWidth / size.width;
+        let heightRate = containerHeight / size.height;
+        let fieldSumWidth = 0;
+        let sumHeight = 0;
+
+        for (let fi = 0; fi < rebinData.fieldList.length; fi++) {
+            const field = rebinData.fieldList[fi];
+            for (let li = field.levelList.length - 1; li >= 0; li--) {
+                const level = field.levelList[li];
+                fieldSumWidth = -1 * binPadding;
+                for (let bi = 0; bi < level.binList.length; bi++) {
+                    const bin = level.binList[bi];
+                    let binWidth = bin.width * widthRate;
+                    let binHeight = bin.height * heightRate;
+                    const binText = level.level + (bi + 1).toString().padStart(2, 0);
+                    const fg = "gray";
+                    const bg = "#f2f2f2";
+                    drawBin(ctx, fieldSumWidth, sumHeight, binWidth, binHeight, fg, bg, binText);
+
+                    const binData = getStoreageBinData(rebinData.binDTOList, field.fieldIndex, level.levelIndex, bin.binIndex);
+                    // 将点位信息存储到内存
+                    positionData.set(binData.id, {
+                        storageBinId: binData.id,
+                        binText: binData.plcCode,
+                        x: fieldSumWidth,
+                        y: sumHeight,
+                        w: binWidth,
+                        h: binHeight,
+                        fg: fg,
+                        bg: bg
+                    });
+
+                    fieldSumWidth += binWidth;
+                }
+                sumHeight += level.binList[0].height * heightRate;
+            }
+        }
+    },
+    drawOrderInfo(ctx, binData, orderData) {
+        drawBinContainer(ctx, binData.x, binData.y, binData.w, binData.h, getBackgroundByLevel(orderData.binText[0]));
+        const fontSize = binData.w > binData.h ? binData.h / 5 : binData.w / 5;
+        const fontSizeForQty = binData.w > binData.h ? binData.h / 3.5 : binData.w / 3.5;
+        drawText(ctx, orderData.binText, binData.x + binData.w / 4, binData.y + binData.h / 4, getForegroundByLevel(orderData.binText[0]), fontSize);
+        drawText(ctx, "10/20", binData.w / 2 + binData.x, binData.h / 1.5 + binData.y, getForegroundByLevel(orderData.binText[0]), fontSizeForQty);
     },
     // 初始化指定格子的样式
     reset(ctx, positionData, binText) {
         const p = positionData.get(binText);
-        drawBin(ctx, p.x, p.y, p.w, p.h, "black", "#f2f2f2", binText);
+        drawBin(ctx, p.x, p.y, p.w, p.h, "gray", "#f2f2f2", p.binText);
     },
     // 初始化所有格子的样式
     resetAll(ctx, positionData) {
         for (const key of positionData.keys()) {
             const p = positionData.get(key);
-            drawBin(ctx, p.x, p.y, p.w, p.h, "black", "#f2f2f2", key);
+            drawBin(ctx, p.x, p.y, p.w, p.h, "gray", "#f2f2f2", key);
         }
     },
     // 高亮格子

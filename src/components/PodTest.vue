@@ -138,7 +138,7 @@ export default {
 };
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @import "@/element-variables.scss";
 $height: calc(100vh - 85px);
 .main-layout {

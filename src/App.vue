@@ -122,7 +122,9 @@
                         <el-menu-item index="2">
                             <router-link to="/rack/pod">货架测试</router-link>
                         </el-menu-item>
-                        <el-menu-item index="3">分拨墙测试</el-menu-item>
+                        <el-menu-item index="3">
+                            <router-link to="/rack/rebin">分拨墙测试</router-link>
+                        </el-menu-item>
                     </el-menu>
                 </div>
                 <div>
@@ -246,7 +248,7 @@ export default {
 };
 </script>
 
-<style lang='scss'>
+<style lang='scss' scoped>
 @import "@/element-variables.scss";
 $command-hover-background: coral;
 $command-hover-color: white;
