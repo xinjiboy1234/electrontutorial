@@ -171,7 +171,7 @@ export default {
     name: "RebinWall",
     mounted() {
         this.positionData = new Map();
-        Axios.get(`http://192.168.3.57:8888/rebinwall.json`).then((resp) => {
+        Axios.get(`http://192.168.3.57:8888/rebinwall.json?id=${new Date().getTime()}`).then((resp) => {
             this.rebinData = resp.data.data;
             this.currentRebinId = this.rebinData[0].rackDTO.id;
             this.$nextTick(() => {
@@ -181,7 +181,6 @@ export default {
                     item.width = item.clientWidth;
                     item.height = item.clientHeight;
                 }
-                console.log(rebinCanvases);
                 this.wallCommandX = document.body.clientWidth - 450;
                 this.wallCommandY = document.body.clientHeight - 120;
                 for (let i = 0; i < this.rebinData.length; i++) {
@@ -245,7 +244,7 @@ export default {
          */
         setOrderData(ctx, rebinId) {
             console.log(`begin show order`);
-            Axios.get(`http://192.168.3.57:8888/orderdata.json`).then(
+            Axios.get(`http://192.168.3.57:8888/orderdata.json?id=${new Date().getTime()}`).then(
                 (orderResp) => {
                     if (orderResp.data == null) return;
                     this.orderData = orderResp.data.data.wallOrderList;

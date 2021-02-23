@@ -96,7 +96,7 @@ export default {
         });
 
         this.canvasContext = podCanvas.getContext("2d");
-        Axios.get(`http://192.168.3.57:8888/data.json`).then((resp) => {
+        Axios.get(`http://192.168.3.57:8888/data.json?id=${new Date().getTime()}`).then((resp) => {
             this.podData = resp.data.data;
             this.positionData = new Map();
             this.podCode = `${this.podData.rackDTO.code}${this.podData.fieldList[0].field}`;
