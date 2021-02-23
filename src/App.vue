@@ -199,6 +199,7 @@
 
 <script>
 const ipcRenderer = window.require("electron").ipcRenderer;
+// const remote = window.require("electron").remote;
 
 /**
  * 此方法是获取按钮对象的方法
@@ -231,6 +232,9 @@ export default {
     },
     methods: {
         closeWindow() {
+            // const win = remote.getCurrentWindow();
+            // win.close();
+            console.log("send window close");
             ipcRenderer.send("window-close");
         },
         minWindow(e) {

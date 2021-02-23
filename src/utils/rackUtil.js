@@ -188,11 +188,23 @@ function getStoreageBinData(binList, f, l, b) {
 }
 
 export default {
+    /**
+     * 移除货位
+     * @param {*} ctx 
+     * @param {*} canv 
+     */
     clearRackStructure(ctx, canv) {
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canv.width, canv.height);
     },
-    drawRack(ctx, canv, podData, positionData) {
+    /**
+     * 画货位
+     * @param {*} ctx 
+     * @param {*} canv 
+     * @param {*} podData 
+     * @param {*} positionData 
+     */
+    drawPodRack(ctx, canv, podData, positionData) {
         let size = getRackSize(podData);
 
         const binPadding = 5;
@@ -240,6 +252,13 @@ export default {
             }
         }
     },
+    /**
+     * 画分拨墙货位
+     * @param {*} ctx 
+     * @param {*} canv 
+     * @param {*} rebinData 
+     * @param {*} positionData 
+     */
     drawRebinRack(ctx, canv, rebinData, positionData) {
         let size = getRackSize(rebinData);
         //货位之间最小间隔
@@ -288,26 +307,46 @@ export default {
             }
         }
     },
+    /**
+     * 画订单货位
+     * @param {*} ctx 
+     * @param {*} binData 
+     * @param {*} orderData 
+     */
     drawOrderInfo(ctx, binData, orderData) {
         drawBinContainer(ctx, binData.x, binData.y, binData.w, binData.h, getBackgroundByLevel(orderData.binText[0]));
         const fontSize = binData.w > binData.h ? binData.h / 5 : binData.w / 5;
         const fontSizeForQty = binData.w > binData.h ? binData.h / 3.5 : binData.w / 3.5;
         drawText(ctx, orderData.binText, binData.x + binData.w / 4, binData.y + binData.h / 4, getForegroundByLevel(orderData.binText[0]), fontSize);
-        drawText(ctx, "10/20", binData.w / 2 + binData.x, binData.h / 1.5 + binData.y, getForegroundByLevel(orderData.binText[0]), fontSizeForQty);
+        drawText(ctx, orderData.orderTotalQty, binData.w / 2 + binData.x, binData.h / 1.5 + binData.y, getForegroundByLevel(orderData.binText[0]), fontSizeForQty);
     },
-    // 初始化指定格子的样式
+    /**
+     * 初始化指定格子的样式
+     * @param {*} ctx 
+     * @param {*} positionData 
+     * @param {*} binText 
+     */
     reset(ctx, positionData, binText) {
         const p = positionData.get(binText);
         drawBin(ctx, p.x, p.y, p.w, p.h, "gray", "#f2f2f2", p.binText);
     },
-    // 初始化所有格子的样式
+    /**
+     * 初始化所有格子的样式
+     * @param {*} ctx 
+     * @param {*} positionData 
+     */
     resetAll(ctx, positionData) {
         for (const key of positionData.keys()) {
             const p = positionData.get(key);
             drawBin(ctx, p.x, p.y, p.w, p.h, "gray", "#f2f2f2", key);
         }
     },
-    // 高亮格子
+    /**
+     * 高亮货位格子
+     * @param {*} ctx 
+     * @param {*} positionData 
+     * @param {*} binText 
+     */
     highLight(ctx, positionData, binText) {
         const p = positionData.get(binText);
         drawBin(ctx, p.x, p.y, p.w, p.h, getForegroundByLevel(binText[0]), getBackgroundByLevel(binText[0]), binText);

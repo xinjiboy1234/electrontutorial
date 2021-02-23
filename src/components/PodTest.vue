@@ -100,7 +100,7 @@ export default {
             this.podData = resp.data.data;
             this.positionData = new Map();
             this.podCode = `${this.podData.rackDTO.code}${this.podData.fieldList[0].field}`;
-            rackUtil.drawRack(
+            rackUtil.drawPodRack(
                 this.canvasContext,
                 podCanvas,
                 this.podData,

@@ -12,11 +12,62 @@
                     }"
                     id="detailmodal"
                     v-if="detailModalVisible"
-                    @click="hiddenSelf()"
                 >
-                    <span>
-                        {{ someText }}
-                    </span>
+                    <div>
+                        <div style="padding: 0px 10px">
+                            <div
+                                style="
+                                    display: flex;
+                                    justify-content: space-between;
+                                    align-items: center;
+                                "
+                            >
+                                <h1 style="margin: 10px 0px">
+                                    {{ orderDataForModal.binText }}
+                                </h1>
+                                <el-button
+                                    type="danger"
+                                    size="mini"
+                                    style="height: 40px"
+                                    @click="hiddenSelf()"
+                                >
+                                    关闭
+                                </el-button>
+                            </div>
+                            <div class="line"></div>
+                            <el-table
+                                :data="orderDataForModal.orderList"
+                                height="240"
+                                border
+                                style="width: 100%"
+                            >
+                                <el-table-column
+                                    prop="deliveryOrderNumber"
+                                    label="订单号"
+                                    width="240"
+                                >
+                                </el-table-column>
+                                <el-table-column
+                                    prop="quantity"
+                                    label="数量"
+                                    width="100"
+                                >
+                                </el-table-column>
+                                <el-table-column
+                                    prop="pickedQuantity"
+                                    label="已拣数量"
+                                    width="100"
+                                >
+                                </el-table-column>
+                                <el-table-column
+                                    prop="timeScope"
+                                    label="经过时间"
+                                    width="139"
+                                >
+                                </el-table-column>
+                            </el-table>
+                        </div>
+                    </div>
                 </div>
                 <div v-for="item in 2" :key="item">
                     <canvas
@@ -40,6 +91,9 @@
                     <el-button
                         class="wall-command-button"
                         circle
+                        :disabled="
+                            rebinData.length < 2 && currentRebinIndex === 0
+                        "
                         icon="el-icon-arrow-left"
                         @click="showPrevWall"
                     ></el-button>
@@ -58,6 +112,10 @@
                     <el-button
                         class="wall-command-button"
                         circle
+                        :disabled="
+                            rebinData.length < 2 &&
+                            currentRebinIndex === rebinData.length - 1
+                        "
                         icon="el-icon-arrow-right"
                         @click="showNextWall"
                     ></el-button>
@@ -73,6 +131,32 @@
 </template>
 
 <script>
+function getTimeScope(timeStart, timeEnd) {
+    let timeScopeMiliSeconds =
+        new Date(timeEnd).getTime() - new Date(timeStart).getTime();
+    const days = Math.floor(timeScopeMiliSeconds / (24 * 3600 * 1000));
+    let remain = timeScopeMiliSeconds % (24 * 3600 * 1000);
+    const hours = Math.floor(remain / (3600 * 1000));
+    remain = remain % (3600 * 1000);
+    const minutes = Math.floor(remain / (60 * 1000));
+    // remain = remain % (60 * 1000);
+    // const seconds = Math.round(remain / 1000);
+    let result = "";
+    if (days != 0) {
+        result += `${days}天 `;
+    }
+    if (hours != 0) {
+        result += `${hours}小时 `;
+    }
+    if (minutes != 0) {
+        result += `${minutes}分`;
+    }
+    // if(seconds!=0){
+    //     result+=`${seconds}秒`
+    // }
+    return result;
+}
+
 import rackUtil from "@/utils/rackUtil.js";
 import Axios from "axios";
 
@@ -93,7 +177,7 @@ export default {
         this.wallCommandY = document.body.clientHeight - 120;
 
         this.positionData = new Map();
-        Axios.get(`/rebinwall.json`).then((resp) => {
+        Axios.get(`/rebinwall.json?id=${new Date().getTime()}`).then((resp) => {
             this.rebinData = resp.data.data;
             this.currentRebinId = this.rebinData[0].rackDTO.id;
             for (let i = 0; i < this.rebinData.length; i++) {
@@ -111,38 +195,17 @@ export default {
                     wallPositionData
                 );
 
-                Axios.get(`/orderdata.json`).then((orderResp) => {
-                    if (orderResp.data == null) return;
-                    const rebin = this.positionData.get(this.currentRebinId)
-                        .wallPositionData;
-                    // 当前分拨墙订单
-                    const currentRebinOrder = orderResp.data.data.wallOrderList.find(
-                        (x) => x.rackId === this.currentRebinId
-                    );
-                    currentRebinOrder.binOrderList.map((x) => {
-                        if (
-                            x.singleOrderList === null ||
-                            x.singleOrderList.length === 0
-                        ) {
-                            rackUtil.reset(ctx, rebin, x.bin.id);
-                        } else {
-                            const binData = rebin.get(x.bin.id);
-                            const orderData = {
-                                binText: x.bin.plcCode,
-                                orderTotalQty: "",
-                                orderDetail: [],
-                            };
-                            rackUtil.drawOrderInfo(ctx, binData, orderData);
-                        }
-                    });
-                });
+                this.setOrderData(ctx, this.rebinData[i].rackDTO.id);
             }
         });
+    },
+    destroyed() {
+        //this.isInterval = false;
     },
     data() {
         return {
             currentRebinId: 0,
-            currentRebinIdex: 0,
+            currentRebinIndex: 0,
             positionData: {},
             detailX: 0,
             detailY: 0,
@@ -150,13 +213,17 @@ export default {
             wallCommandY: 0,
             wallCommandOffsetX: 0,
             wallCommandOffsetY: 0,
-            detailWidth: 400,
-            detailHeight: 300,
+            detailWidth: 600,
+            detailHeight: 360,
             detailModalVisible: false,
             wallCode: "",
-            rebinData: {},
-            canvasContext: {},
-            someText: "",
+            rebinData: [],
+            orderDataForModal: {},
+            /**
+             *
+             */
+            currentRebinWallOrderData: [],
+            orderData: [],
         };
     },
     methods: {
@@ -166,6 +233,45 @@ export default {
                 rebinCanvas,
                 this.podData,
                 this.positionData
+            );
+        },
+        /**
+         * 设置订单信息
+         */
+        setOrderData(ctx, rebinId) {
+            Axios.get(`/orderdata.json?id=${new Date().getTime()}`).then(
+                (orderResp) => {
+                    if (orderResp.data == null) return;
+                    this.orderData = orderResp.data.data.wallOrderList;
+                    const rebin = this.positionData.get(this.currentRebinId)
+                        .wallPositionData;
+                    // 当前分拨墙订单
+                    const currentRebinOrder = orderResp.data.data.wallOrderList.find(
+                        (x) => x.rackId === rebinId
+                    );
+                    this.currentRebinWallOrderData = currentRebinOrder;
+                    currentRebinOrder.binOrderList.map((x) => {
+                        if (
+                            x.singleOrderList === null ||
+                            x.singleOrderList.length === 0
+                        ) {
+                            rackUtil.reset(ctx, rebin, x.bin.id);
+                        } else {
+                            let orderTotalQty = 0;
+                            let orderPickedTotalQty = 0;
+                            x.singleOrderList.forEach((o) => {
+                                orderTotalQty += o.quantity;
+                                orderPickedTotalQty += o.pickedQuantity;
+                            });
+                            const binData = rebin.get(x.bin.id);
+                            const orderData = {
+                                binText: x.bin.plcCode,
+                                orderTotalQty: `${orderPickedTotalQty}/${orderTotalQty}`,
+                            };
+                            rackUtil.drawOrderInfo(ctx, binData, orderData);
+                        }
+                    });
+                }
             );
         },
         /**
@@ -188,10 +294,42 @@ export default {
                         e.offsetY >= value.y &&
                         e.offsetY <= value.y + value.h
                     ) {
-                        console.log(
-                            `${value.binText} has been clicked, the bin id is ${value.storageBinId}`
+                        // console.log(
+                        //     `${value.binText} has been clicked, the bin id is ${value.storageBinId}`
+                        // );
+                        this.orderDataForModal = {
+                            binText: value.binText,
+                            orderList: [],
+                        };
+                        const currentRebinOrder = this.currentRebinWallOrderData.binOrderList.find(
+                            (b) => b.bin.id === value.storageBinId
                         );
-                        this.someText = `${value.binText} has been clicked, the bin id is ${value.storageBinId}`;
+                        if (
+                            currentRebinOrder &&
+                            currentRebinOrder.singleOrderList != null
+                        ) {
+                            let orderTemp = currentRebinOrder.singleOrderList.map(
+                                (x) => {
+                                    return {
+                                        deliveryOrderNumber:
+                                            x.deliveryOrderNumber,
+                                        timeScope:
+                                            x.startDate != null
+                                                ? getTimeScope(
+                                                      x.startDate,
+                                                      new Date()
+                                                  )
+                                                : "",
+                                        quantity: x.quantity,
+                                        pickedQuantity: x.pickedQuantity,
+                                    };
+                                }
+                            );
+                            this.orderDataForModal.orderList = orderTemp;
+                        } else {
+                            this.orderDataForModal.orderList = [];
+                        }
+
                         this.detailModalVisible = true;
                         if (
                             document.body.clientWidth - 30 <
@@ -271,12 +409,27 @@ export default {
          * 刷新分拨墙
          */
         refresh() {
-            console.log("refresh");
+            const currentRebinPosition = this.positionData.get(
+                this.currentRebinId
+            );
+            this.setOrderData(
+                currentRebinPosition.canvasContext,
+                this.currentRebinId
+            );
         },
         /**
          * 前一个分拨墙
          */
         showPrevWall() {
+            const currentRebinPosition = this.positionData.get(
+                this.currentRebinId
+            );
+            this.currentRebinIndex--;
+            this.currentRebinId = this.rebinData[this.currentRebinIndex].id;
+            this.setOrderData(
+                currentRebinPosition.canvasContext,
+                this.currentRebinId
+            );
             console.log("showPrevWall");
         },
         /**
@@ -289,6 +442,15 @@ export default {
          * 下一个分拨墙
          */
         showNextWall() {
+            const currentRebinPosition = this.positionData.get(
+                this.currentRebinId
+            );
+            this.currentRebinIndex++;
+            this.currentRebinId = this.rebinData[this.currentRebinIndex].id;
+            this.setOrderData(
+                currentRebinPosition.canvasContext,
+                this.currentRebinId
+            );
             console.log("showNextWall");
         },
     },

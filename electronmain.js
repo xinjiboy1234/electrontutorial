@@ -64,6 +64,7 @@ app.on('activate', function () {
 
 //接收关闭命令
 ipcMain.on('window-close', function () {
+	console.log("window close");
 	mainWindow.close();
 });
 
