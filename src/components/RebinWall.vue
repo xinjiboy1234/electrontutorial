@@ -69,10 +69,13 @@
                         </div>
                     </div>
                 </div>
-                <div v-for="item in positionData" :key="item.rackDTO.id">
+                <div>
                     <canvas
+                        v-for="item in rebinData"
+                        :key="item.id"
                         v-show="item.rackDTO.id === currentRebinId"
-                        ref="rebinCanvas"
+                        :ref="rebinCanvas"
+                        name="rebinCanvas"
                         style="display: block"
                         class="canv"
                         @click="canvasClick($event)"
@@ -162,41 +165,43 @@ import Axios from "axios";
 
 let rebinCanvas;
 
-Axios.defaults.baseURL = "/api/";
+// Axios.defaults.baseURL = "/api/";
 
 export default {
     name: "RebinWall",
     mounted() {
-        const rebinCanvases = this.$refs.rebinCanvas;
-        // 设置canvas的宽高
-        for (const item of rebinCanvases) {
-            item.width = item.clientWidth;
-            item.height = item.clientHeight;
-        }
-        this.wallCommandX = document.body.clientWidth - 450;
-        this.wallCommandY = document.body.clientHeight - 120;
-
         this.positionData = new Map();
-        Axios.get(`/rebinwall.json?id=${new Date().getTime()}`).then((resp) => {
+        Axios.get(`http://192.168.3.57:8888/rebinwall.json`).then((resp) => {
             this.rebinData = resp.data.data;
             this.currentRebinId = this.rebinData[0].rackDTO.id;
-            for (let i = 0; i < this.rebinData.length; i++) {
-                this.wallCode = `${this.rebinData[i].rackDTO.code}`;
-                const ctx = rebinCanvases[i].getContext("2d");
-                const wallPositionData = new Map();
-                this.positionData.set(this.rebinData[i].rackDTO.id, {
-                    wallPositionData: wallPositionData,
-                    canvasContext: ctx,
-                });
-                rackUtil.drawRebinRack(
-                    ctx,
-                    rebinCanvases[i],
-                    this.rebinData[i],
-                    wallPositionData
-                );
+            this.$nextTick(() => {
+                const rebinCanvases = document.getElementsByName("rebinCanvas");
+                // 设置canvas的宽高
+                for (const item of rebinCanvases) {
+                    item.width = item.clientWidth;
+                    item.height = item.clientHeight;
+                }
+                console.log(rebinCanvases);
+                this.wallCommandX = document.body.clientWidth - 450;
+                this.wallCommandY = document.body.clientHeight - 120;
+                for (let i = 0; i < this.rebinData.length; i++) {
+                    this.wallCode = `${this.rebinData[i].rackDTO.code}`;
+                    const ctx = rebinCanvases[i].getContext("2d");
+                    const wallPositionData = new Map();
+                    this.positionData.set(this.rebinData[i].rackDTO.id, {
+                        wallPositionData: wallPositionData,
+                        canvasContext: ctx,
+                    });
+                    rackUtil.drawRebinRack(
+                        ctx,
+                        rebinCanvases[i],
+                        this.rebinData[i],
+                        wallPositionData
+                    );
 
-                this.setOrderData(ctx, this.rebinData[i].rackDTO.id);
-            }
+                    this.setOrderData(ctx, this.rebinData[i].rackDTO.id);
+                }
+            });
         });
     },
     destroyed() {
@@ -239,7 +244,8 @@ export default {
          * 设置订单信息
          */
         setOrderData(ctx, rebinId) {
-            Axios.get(`/orderdata.json?id=${new Date().getTime()}`).then(
+            console.log(`begin show order`);
+            Axios.get(`http://192.168.3.57:8888/orderdata.json`).then(
                 (orderResp) => {
                     if (orderResp.data == null) return;
                     this.orderData = orderResp.data.data.wallOrderList;

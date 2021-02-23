@@ -39,7 +39,7 @@ import Axios from "axios";
 
 let podCanvas;
 
-Axios.defaults.baseURL = "/api/";
+// Axios.defaults.baseURL = "http://192.168.3.57:8888/";
 
 export default {
     name: "PodTest",
@@ -96,7 +96,7 @@ export default {
         });
 
         this.canvasContext = podCanvas.getContext("2d");
-        Axios.get(`/data.json`).then((resp) => {
+        Axios.get(`http://192.168.3.57:8888/data.json`).then((resp) => {
             this.podData = resp.data.data;
             this.positionData = new Map();
             this.podCode = `${this.podData.rackDTO.code}${this.podData.fieldList[0].field}`;

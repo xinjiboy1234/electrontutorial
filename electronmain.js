@@ -4,7 +4,7 @@ const socketClient = require('./utils/socket');
 // import socketClient from './utils/socket';
 
 // const url = require("url");
-// const path = require("path");
+const path = require("path");
 
 let mainWindow
 
@@ -32,8 +32,8 @@ function createWindow() {
 	});
 
 	// mainWindow.webContents.openDevTools({ mode: 'right' }) // 开发者工具
-	mainWindow.loadURL(`http://localhost:8080`);
-	// mainWindow.loadFile(path.join(__dirname, `./dist/index.html`));
+	// mainWindow.loadURL(`http://localhost:8080`);
+	mainWindow.loadFile(path.join(__dirname, `./dist/index.html`));
 
 	// mainWindow.loadURL(
 	//   url.format({ 
