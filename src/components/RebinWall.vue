@@ -69,9 +69,9 @@
                         </div>
                     </div>
                 </div>
-                <div v-for="item in 2" :key="item">
+                <div v-for="item in positionData" :key="item.rackDTO.id">
                     <canvas
-                        v-show="item === 1"
+                        v-show="item.rackDTO.id === currentRebinId"
                         ref="rebinCanvas"
                         style="display: block"
                         class="canv"
